@@ -77,7 +77,6 @@ func TestTableCreationAndWrite(t *testing.T) {
 		}
 	}
 
-	// In this case it was better to create schema from struct since I use struct further...
 	schema := bigquery.Schema{
 		{Name: "Id", Required: true, Type: bigquery.IntegerFieldType},
 		{Name: "Name", Required: true, Type: bigquery.StringFieldType},

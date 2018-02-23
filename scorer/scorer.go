@@ -4,18 +4,23 @@ package scorer
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"sync"
+	"time"
 )
 
 // ScoringResult contains scoring results for one file
 type ScoringResult struct {
-	FilePath    string
-	NumOfErrors int
+	FilePath     string
+	Content      string
+	ModTime      time.Time
+	Size         int64
+	NumOfSbaMsgs int
 }
 
 var (
-	sbacliError = regexp.MustCompile("(?m)^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d\\:\\d\\d\\:\\d\\d,\\d\\d\\d\\tsbacli\\tERROR\\t")
+	sbacliError = regexp.MustCompile("(?m)^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d\\:\\d\\d\\:\\d\\d,\\d\\d\\d\\tsbacli\\t")
 )
 
 func scoreFile(file string) ScoringResult {
@@ -23,11 +28,16 @@ func scoreFile(file string) ScoringResult {
 	if err != nil {
 		log.Panic(err)
 	}
-	match := sbacliError.FindAllString(string(bytes), -1)
-	if match == nil {
-		return ScoringResult{file, 0}
+	info, err := os.Stat(file)
+	if err != nil {
+		log.Panic(err)
 	}
-	return ScoringResult{file, len(match)}
+	content := string(bytes)
+	match := sbacliError.FindAllString(content, -1)
+	if match == nil {
+		return ScoringResult{file, content, info.ModTime(), info.Size(), 0}
+	}
+	return ScoringResult{file, content, info.ModTime(), info.Size(), len(match)}
 }
 
 // Score does parallel scoring calculations for files from input channel

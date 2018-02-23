@@ -3,7 +3,7 @@ package etlutils
 import (
 	"fmt"
 
-	"github.com/beloblotskiy/data-signal-detector/scorer"
+	"github.com/beloblotskiy/BigQuery-Logs/scorer"
 )
 
 // Print prints all elements from channel ch

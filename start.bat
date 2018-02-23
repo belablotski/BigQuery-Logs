@@ -1,0 +1,1 @@
+BigQuery-Logs.exe>BigQuery-Logs.out 2>BigQuery-Logs.err
