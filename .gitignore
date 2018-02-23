@@ -15,3 +15,6 @@
 .glide/
 
 test_data/
+test_data_light/
+
+start_SERV.bat

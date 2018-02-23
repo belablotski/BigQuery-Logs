@@ -29,7 +29,7 @@ func Decide(nWorkers int, scores <-chan scorer.ScoringResult) <-chan scorer.Scor
 			}
 			cnt++
 		}
-		log.Printf("Decision maker #%d ends, processed %d results - %d positive", n, cnt, pcnt)
+		log.Printf("Decision maker #%d ends: processed %d results, %d positive", n, cnt, pcnt)
 	}
 
 	go func() {

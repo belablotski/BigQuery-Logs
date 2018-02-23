@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,6 +24,14 @@ type ScoringResult struct {
 var (
 	sbacliError = regexp.MustCompile("(?m)^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d\\:\\d\\d\\:\\d\\d,\\d\\d\\d\\tsbacli\\t")
 )
+
+func isScoringNeeded(file string) bool {
+	switch strings.ToLower(filepath.Ext(file)) {
+	case "", ".log", ".err", ".out", ".stdout", ".stderr", ".txt":
+		return true
+	}
+	return false
+}
 
 func scoreFile(file string) ScoringResult {
 	bytes, err := ioutil.ReadFile(file)
@@ -47,12 +57,20 @@ func Score(nWorkers int, files <-chan string) <-chan ScoringResult {
 	scorer := func(n int, wg *sync.WaitGroup) {
 		defer wg.Done()
 		log.Printf("Scorer #%d starts", n)
-		cnt := 0
+		scored := 0
+		skipped := 0
 		for file := range files {
-			scores <- scoreFile(file)
-			cnt++
+			if isScoringNeeded(file) {
+				scores <- scoreFile(file)
+				scored++
+			} else {
+				skipped++
+			}
+			if (scored+skipped)%1000 == 0 {
+				log.Printf("Scorer #%d went thru %d files: processed %d files, skipped %d files", n, scored+skipped, scored, skipped)
+			}
 		}
-		log.Printf("Scorer #%d ends, processed %d files", n, cnt)
+		log.Printf("Scorer #%d ends: processed %d files, skipped %d files...", n, scored, skipped)
 	}
 
 	go func() {

@@ -39,7 +39,7 @@ func Scan(startDir string) <-chan string {
 		log.Println("File system scanner starts")
 		cnt := listFiles(startDir, files)
 		close(files)
-		log.Printf("File system scanner ends, processed %d files", cnt)
+		log.Printf("File system scanner ends: processed %d files", cnt)
 	}()
 
 	return files

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"time"
 
@@ -12,8 +13,19 @@ import (
 
 func main() {
 	t0 := time.Now()
-	p := ".\\test_data"
+
+	sysPtr := flag.String("sys", "", "System tag, typically server name")
+	dirPtr := flag.String("dir", "", "Start dir for log scan")
+	flag.Parse()
+	if len(*sysPtr) == 0 || len(*dirPtr) == 0 {
+		log.Panic("Not all command-line arguments are defined. Please use -h to get more information.")
+	} else {
+		log.Printf("Started at %v with command-line arguments: sys=%s, dir=%s", t0, *sysPtr, *dirPtr)
+	}
+
+	//p := ".\\test_data"
 	//etlutils.PrintSR(dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
-	<-bqldr.Upload(7, dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
+
+	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(*dirPtr))))
 	log.Printf("Execution time: %v", time.Since(t0))
 }
