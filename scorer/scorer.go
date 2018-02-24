@@ -36,7 +36,12 @@ func isScoringNeeded(file string) bool {
 func scoreFile(file string) ScoringResult {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Panic(err)
+		// TODO: instead of skipping the file, log that the file is exist but it's impossible to read it
+		if strings.Contains(err.Error(), "Access is denied") {
+			log.Printf("ERROR: Can't read a file - access denied. Error: %s", err.Error())
+		} else {
+			log.Panic(err)
+		}
 	}
 	info, err := os.Stat(file)
 	if err != nil {
