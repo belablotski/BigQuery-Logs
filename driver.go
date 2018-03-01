@@ -26,6 +26,6 @@ func main() {
 	//p := ".\\test_data"
 	//etlutils.PrintSR(dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
 
-	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(*dirPtr))))
+	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(time.Date(2018, 2, 28, 15, 51, 0, 0, time.Local), *dirPtr))))
 	log.Printf("Execution time: %v", time.Since(t0))
 }

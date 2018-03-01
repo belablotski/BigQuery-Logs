@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -25,12 +24,8 @@ var (
 	sbacliError = regexp.MustCompile("(?m)^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d\\:\\d\\d\\:\\d\\d,\\d\\d\\d\\tsbacli\\t")
 )
 
-func isScoringNeeded(file string) bool {
-	switch strings.ToLower(filepath.Ext(file)) {
-	case "", ".log", ".err", ".out", ".stdout", ".stderr", ".txt":
-		return true
-	}
-	return false
+func isScoringNeeded(path string) bool {
+	return true
 }
 
 func scoreFile(file string) ScoringResult {
