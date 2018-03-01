@@ -2,7 +2,9 @@ package etlutils
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/beloblotskiy/BigQuery-Logs/bqldr"
 	"github.com/beloblotskiy/BigQuery-Logs/scorer"
 )
 
@@ -38,4 +40,14 @@ func PrintSR(ch <-chan scorer.ScoringResult) {
 	for s := range ch {
 		chi <- s
 	}
+}
+
+// CalcCDSStartDate calculates Change Data Capture start time for specified system
+func CalcCDSStartDate(systemName string) time.Time {
+	maxLasModDt := bqldr.GetMaxLastModTime(systemName)
+	if maxLasModDt == nil {
+		return time.Date(2016, 1, 1, 0, 0, 0, 0, time.Local)
+	}
+	t := time.Date(maxLasModDt.Year(), maxLasModDt.Month(), maxLasModDt.Day(), 0, 0, 0, 0, time.Local)
+	return t.AddDate(0, 0, -1)
 }

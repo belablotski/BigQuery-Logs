@@ -7,6 +7,7 @@ import (
 
 	"github.com/beloblotskiy/BigQuery-Logs/bqldr"
 	"github.com/beloblotskiy/BigQuery-Logs/dmaker"
+	"github.com/beloblotskiy/BigQuery-Logs/etlutils"
 	"github.com/beloblotskiy/BigQuery-Logs/scanner"
 	"github.com/beloblotskiy/BigQuery-Logs/scorer"
 )
@@ -26,6 +27,8 @@ func main() {
 	//p := ".\\test_data"
 	//etlutils.PrintSR(dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
 
-	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(time.Date(2018, 2, 28, 15, 51, 0, 0, time.Local), *dirPtr))))
+	cdcstart := etlutils.CalcCDSStartDate(*sysPtr)
+	bqldr.PrepareCDC(*sysPtr, cdcstart)
+	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(cdcstart, *dirPtr))))
 	log.Printf("Execution time: %v", time.Since(t0))
 }

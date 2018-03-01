@@ -2,6 +2,7 @@ package bqldr
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
 	"github.com/beloblotskiy/BigQuery-Logs/scorer"
+	"google.golang.org/api/iterator"
 )
 
 const (
@@ -173,4 +175,68 @@ func Upload(nWorkers int, systemName string, scores <-chan scorer.ScoringResult)
 	}()
 
 	return isReady
+}
+
+// GetMaxLastModTime retrieves max(LastModifiedDt) from SBA.logfiles (returns nil if table is empty)
+func GetMaxLastModTime(systemName string) *time.Time {
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, bigQueryProjectID)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer client.Close()
+
+	q := client.Query(fmt.Sprintf("select * from (select max(LastModifiedDt) m from SBA.logfiles where sys='%s') t where t.m is not null", systemName))
+	it, err := q.Read(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	var values []bigquery.Value
+	err = it.Next(&values)
+	if err == iterator.Done {
+		log.Printf("GetMaxLastModTime for system='%s' returns nil - no log files for the system in BigQuery", systemName)
+		return nil
+	}
+	if err != nil {
+		log.Panic(err)
+	}
+	//log.Printf("GetMaxLastModTime retrieved %v", values)
+	t, err := time.ParseInLocation("2006-01-02 15:04:05.999999", bigquery.CivilDateTimeString(values[0].(civil.DateTime)), time.Local)
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Printf("GetMaxLastModTime for system='%s', retrieved %v (parsed as local time)", systemName, t)
+	return &t
+}
+
+// PrepareCDC removes BigQuery log records starting from startCDCCapture for specified system
+func PrepareCDC(systemName string, startCDCCapture time.Time) {
+	log.Printf("Preparing CDC - remove all records for sys = '%s' starting from %v", systemName, startCDCCapture)
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, bigQueryProjectID)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer client.Close()
+
+	q := client.Query(fmt.Sprintf("delete from `SBA.loglines` l where l.fileid in (select id from SBA.logfiles f where f.sys = '%s')", systemName))
+	job, err := q.Run(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	status, err := job.Wait(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+	if status.Err() != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("Query statistics: %v", status.Statistics)
+	log.Printf("Details: %v", status.Statistics.Details)
+
+	//q := client.Query(fmt.Sprintf("delete from SBA.logfiles f where f.sys = '%s'", systemName))
+
 }

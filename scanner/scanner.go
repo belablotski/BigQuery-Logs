@@ -14,6 +14,7 @@ import (
 func isScoringNeeded(startCapture time.Time, path string, fi os.FileInfo) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case "", ".log", ".err", ".out", ".stdout", ".stderr", ".txt":
+		log.Printf("%s, modtime=%v, startCapture=%v", path, fi.ModTime(), startCapture)
 		if !fi.ModTime().Before(startCapture) {
 			return true
 		}
@@ -54,7 +55,7 @@ func Scan(startTime time.Time, startDir string) <-chan string {
 	files := make(chan string, 100)
 
 	go func() {
-		log.Println("File system scanner starts")
+		log.Printf("File system scanner starts from %s, CDC start date %v", startDir, startTime)
 		scored, skipped := listFiles(startTime, startDir, files)
 		close(files)
 		log.Printf("File system scanner ends: %d files sent to scoring, %d files skipped", scored, skipped)
