@@ -14,7 +14,7 @@ import (
 func isScoringNeeded(startCapture time.Time, path string, fi os.FileInfo) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case "", ".log", ".err", ".out", ".stdout", ".stderr", ".txt":
-		log.Printf("%s, modtime=%v, startCapture=%v", path, fi.ModTime(), startCapture)
+		log.Printf("File %s, modtime=%v, startCapture=%v", path, fi.ModTime(), startCapture)
 		if !fi.ModTime().Before(startCapture) {
 			return true
 		}

@@ -210,17 +210,10 @@ func GetMaxLastModTime(systemName string) *time.Time {
 	return &t
 }
 
-// PrepareCDC removes BigQuery log records starting from startCDCCapture for specified system
-func PrepareCDC(systemName string, startCDCCapture time.Time) {
-	log.Printf("Preparing CDC - remove all records for sys = '%s' starting from %v", systemName, startCDCCapture)
-	ctx := context.Background()
-	client, err := bigquery.NewClient(ctx, bigQueryProjectID)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer client.Close()
-
-	q := client.Query(fmt.Sprintf("delete from `SBA.loglines` l where l.fileid in (select id from SBA.logfiles f where f.sys = '%s')", systemName))
+// Bloking DML execution, panics on errors
+func execDML(ctx context.Context, client *bigquery.Client, dml string) (rowsAffected int64) {
+	log.Printf("Executing DML (may fail if stream buffer isn't empty - wait 90 minutes): %s", dml)
+	q := client.Query(dml)
 	job, err := q.Run(ctx)
 	if err != nil {
 		log.Panic(err)
@@ -233,10 +226,25 @@ func PrepareCDC(systemName string, startCDCCapture time.Time) {
 	if status.Err() != nil {
 		log.Panic(err)
 	}
+	rowsAffected = status.Statistics.Details.(*bigquery.QueryStatistics).NumDMLAffectedRows
+	log.Printf("Query finished in %v, %d rows affected", status.Statistics.EndTime.Sub(status.Statistics.StartTime), rowsAffected)
+	return rowsAffected
+}
 
-	log.Printf("Query statistics: %v", status.Statistics)
-	log.Printf("Details: %v", status.Statistics.Details)
+// PrepareCDC removes BigQuery log records starting from startCDCCapture for specified system
+func PrepareCDC(systemName string, startCDCCapture time.Time) {
+	log.Printf("Preparing CDC - remove all records for sys = '%s' starting from %v", systemName, startCDCCapture)
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, bigQueryProjectID)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer client.Close()
 
-	//q := client.Query(fmt.Sprintf("delete from SBA.logfiles f where f.sys = '%s'", systemName))
+	sql1 := fmt.Sprintf("delete from `SBA.loglines` l where l.fileid in (select id from SBA.logfiles f where f.sys = '%s' and LastModifiedDt>='%s')",
+		systemName, startCDCCapture.Format("2006-01-02 15:04:05.999999"))
+	execDML(ctx, client, sql1)
 
+	sql2 := fmt.Sprintf("delete from SBA.logfiles f where f.sys = '%s' and LastModifiedDt>='%s'", systemName, startCDCCapture.Format("2006-01-02 15:04:05.999999"))
+	execDML(ctx, client, sql2)
 }

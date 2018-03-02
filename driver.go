@@ -24,11 +24,9 @@ func main() {
 		log.Printf("Started at %v with command-line arguments: sys=%s, dir=%s", t0, *sysPtr, *dirPtr)
 	}
 
-	//p := ".\\test_data"
-	//etlutils.PrintSR(dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
-
 	cdcstart := etlutils.CalcCDSStartDate(*sysPtr)
 	bqldr.PrepareCDC(*sysPtr, cdcstart)
+	// for debugging: etlutils.PrintSR(dmaker.Decide(...))
 	<-bqldr.Upload(5, *sysPtr, dmaker.Decide(1, scorer.Score(15, scanner.Scan(cdcstart, *dirPtr))))
 	log.Printf("Execution time: %v", time.Since(t0))
 }
